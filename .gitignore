@@ -1,6 +1,10 @@
 # Personal agent instructions (local only, see CLAUDE.md)
 /internal/
 /docs/internal/
+# Insurers' PDFs: redistribution terms not checked yet
+/raw/
+# Markdown converted from those PDFs, same terms
+/data/
 
 # Logs
 logs
