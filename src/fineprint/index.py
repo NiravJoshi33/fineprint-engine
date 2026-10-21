@@ -1,20 +1,20 @@
 import bm25s
 from bm25s import BM25
 
-def get_bm25_retriever(corpus: list[str]):
-    retriever = bm25s.BM25(corpus=corpus)
+def get_bm25_retriever():
+    retriever = bm25s.BM25()
     return retriever
 
 def index_corpus_with_bm25(corpus: list[str]):
     corpus_tokens = bm25s.tokenize(corpus)
-    retriever = get_bm25_retriever(corpus)
+    retriever = get_bm25_retriever()
     retriever.index(corpus_tokens)
     return retriever
 
 def query_bm25(query: str, retriever: BM25):
     query_tokens = bm25s.tokenize(query)
-    docs, scores = retriever.retrieve(query_tokens, k=5)
-    return docs, scores
+    [doc_indices], scores = retriever.retrieve(query_tokens, k=5)
+    return doc_indices.tolist(), scores
 
 
 if __name__ == "__main__":
@@ -26,11 +26,10 @@ if __name__ == "__main__":
     chunks = split_on_headings(md_text)
 
     retriever = index_corpus_with_bm25(chunks)
-    [docs], scores = query_bm25(query="moratorium period", retriever=retriever)
+    indices, scores = query_bm25(query="moratorium period", retriever=retriever)
     
-    for doc in docs:
-        print(doc.splitlines()[0])
-
+    
+    print(indices)
 
 
     

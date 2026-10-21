@@ -10,17 +10,21 @@ def get_embeddings(corpus: list[str]):
 def get_embeddings_for_query(query: str):
     return model.encode("Represent this sentence for searching relevant passages: " + query, normalize_embeddings=True)
 
-def vector_search(query: str, corpus_embeddings: np.ndarray, corpus: list[str], top_k: int) -> list[str]:
+def vector_search(query: str, corpus_embeddings: np.ndarray, corpus: list[str], top_k: int) -> list[int]:
     query_embeddings = get_embeddings_for_query(query=query)
     similarity = corpus_embeddings @ query_embeddings
     sorted_similarity_positions = np.argsort(similarity) # sorts positions into smallest to largest
 
-    retrieved_docs = []
+    chunk_indices = []
     for i in range(top_k):
         chunk_index = sorted_similarity_positions[- i - 1]
-        retrieved_docs.append(corpus[chunk_index])
+        chunk_indices.append(chunk_index)
 
-    return retrieved_docs
+    return [n.item() for n in chunk_indices]
+
+   
+
+    
 
 if __name__ == "__main__":
     from fineprint.chunk import split_on_headings
@@ -31,7 +35,7 @@ if __name__ == "__main__":
     chunks = split_on_headings(md_text)
 
     corpus_embeddings = get_embeddings(corpus=chunks)
-    docs = vector_search(query="moratorium period", corpus_embeddings=corpus_embeddings, corpus=chunks, top_k=5)
-    print(len(docs))
+    doc_indices = vector_search(query="moratorium period", corpus_embeddings=corpus_embeddings, corpus=chunks, top_k=5)
+    
 
     
