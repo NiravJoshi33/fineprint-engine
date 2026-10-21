@@ -12,6 +12,7 @@ dependencies = [
     "docling>=2.140.0",
     "pymupdf==2.0",
     "pymupdf4llm==2.0",
+    "sentence-transformers>=6.1.0",
 ]
 
 [project.scripts]
