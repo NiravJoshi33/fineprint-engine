@@ -10,8 +10,10 @@ requires-python = ">=3.12"
 dependencies = [
     "bm25s>=0.3.14",
     "docling>=2.140.0",
+    "openai>=3.35.1",
     "pymupdf==2.0",
     "pymupdf4llm==2.0",
+    "python-dotenv>=1.2.4",
     "sentence-transformers>=6.1.0",
 ]
 
