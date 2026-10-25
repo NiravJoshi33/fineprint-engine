@@ -10,7 +10,7 @@ def get_embeddings(corpus: list[str]):
 def get_embeddings_for_query(query: str):
     return model.encode("Represent this sentence for searching relevant passages: " + query, normalize_embeddings=True)
 
-def vector_search(query: str, corpus_embeddings: np.ndarray, corpus: list[str], top_k: int) -> list[int]:
+def vector_search(query: str, corpus_embeddings: np.ndarray, top_k: int) -> list[int]:
     query_embeddings = get_embeddings_for_query(query=query)
     similarity = corpus_embeddings @ query_embeddings
     sorted_similarity_positions = np.argsort(similarity) # sorts positions into smallest to largest
@@ -32,10 +32,11 @@ if __name__ == "__main__":
    
     
     md_text = get_or_create_markdown(raw_file="raw/niva_reassure2.pdf", markdown_file="data/niva_reassure2.md")
-    chunks = split_on_headings(md_text)
+    chunks = split_on_headings(md_text, "NBHHLIP27054V032627")
+    chunk_texts = [chunk["chunk"] for chunk in chunks]
 
-    corpus_embeddings = get_embeddings(corpus=chunks)
-    doc_indices = vector_search(query="moratorium period", corpus_embeddings=corpus_embeddings, corpus=chunks, top_k=5)
+    corpus_embeddings = get_embeddings(corpus=chunk_texts)
+    doc_indices = vector_search(query="moratorium period", corpus_embeddings=corpus_embeddings, top_k=5)
     
 
     

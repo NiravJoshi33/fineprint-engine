@@ -30,13 +30,14 @@ if __name__ == "__main__":
 
     
     md_text = get_or_create_markdown(raw_file="raw/niva_reassure2.pdf", markdown_file="data/niva_reassure2.md")
-    chunks = split_on_headings(md_text)
+    chunks = split_on_headings(md_text, "NBHHLIP27054V032627")
+    chunk_texts = [chunk["chunk"] for chunk in chunks]
 
-    retriever = index_corpus_with_bm25(chunks)
+    retriever = index_corpus_with_bm25(chunk_texts)
     indices, scores = query_bm25(query="moratorium period", retriever=retriever)
 
-    corpus_embeddings = get_embeddings(corpus=chunks)
-    doc_indices = vector_search(query="moratorium period", corpus_embeddings=corpus_embeddings, corpus=chunks, top_k=5)
+    corpus_embeddings = get_embeddings(corpus=chunk_texts)
+    doc_indices = vector_search(query="moratorium period", corpus_embeddings=corpus_embeddings, top_k=5)
 
     joined_docs_indices = join_documents_with_rrf(bm25docs_indices=indices, vector_docs_indices=doc_indices)
     print(joined_docs_indices)

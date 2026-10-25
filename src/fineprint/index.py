@@ -23,9 +23,10 @@ if __name__ == "__main__":
     from fineprint.convert import get_or_create_markdown
     
     md_text = get_or_create_markdown(raw_file="raw/niva_reassure2.pdf", markdown_file="data/niva_reassure2.md")
-    chunks = split_on_headings(md_text)
+    chunks = split_on_headings(md_text, "NBHHLIP27054V032627")
+    chunk_texts = [chunk["chunk"] for chunk in chunks]
 
-    retriever = index_corpus_with_bm25(chunks)
+    retriever = index_corpus_with_bm25(chunk_texts)
     indices, scores = query_bm25(query="moratorium period", retriever=retriever)
     
     
