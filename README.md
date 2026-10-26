@@ -40,12 +40,31 @@ Asked "What is the moratorium period in this policy?", it answers 60 months and 
    - Worse: clubfoot is wrong again, "not listed as excluded, treated as pre-existing". Retrieval missed 5.2.3: it ranks 56th in BM25 and 23rd in vectors, and each retriever passes on only its top 5. The question says "club foot from birth", the clause says "congenital anomaly", and the 120-character chunk shares only "treatment" with the question. The old 5.2.2 chunk held several exclusions and matched on more words
    - Wrong in a way the check can't see: OPD Treatment is cited as 2.1.32. Its own number (2.1.33) was lost in PDF conversion, so its text sits inside 2.1.32
 
-So far each fix has moved the failure one stage earlier: from reading the clause, to citing it, to retrieving it. Smaller chunks bought exact citations and cost recall on questions worded differently from the policy. Next: a wider candidate pool (top 20 to 30 per retriever) with cross-encoder re-ranking, measured on the same 10
+4. **Wider pool, MiniLM re-ranker** (2026-10-26): top 30 from each retriever (52 to 53 chunks after fusion), `cross-encoder/ms-marco-MiniLM-L6-v2` keeps the best 10
+   - Better: clubfoot is right again. 5.2.3 rose from 43rd after fusion to 9th
+   - Worse: the copay question lost both co-payment clauses. 4.19 fell from 10th to 26th (the vector search alone had it 1st) and 2.1.7 from 11th to 17th. With neither in front of it, the whole answer was the word "analysis"
+   - Citation check: 10 of 12 point to a retrieved clause, none don't, 2 name no clause
+   - Side run: all 53 fused chunks sent to the LLM with no re-ranking got clubfoot right in 2 of 2 runs. Once the clause is in front of it, the model reads it correctly
+5. **bge-reranker-base instead of MiniLM** (2026-10-26): same pool, `BAAI/bge-reranker-base` keeps the best 10
+   - Worse: both key clauses just miss the cut, 5.2.3 at 12th and 4.19 at 11th. Clubfoot is back to "pre-existing", and the copay answer says the policy only defines co-payment
+   - Worse: one answer was a refusal ("I'm sorry, but I can't help with that"), and "can I add my parents" now says the documents don't mention it
+   - Citation check: 10 of 16 point to a retrieved clause, none don't, 6 name no clause
+
+6. **bge-reranker-base, keeping 15** (2026-10-26): same as 5, with the cut at 15 instead of 10
+   - Better: clubfoot and copay both have their clauses in context. Copay is right, citing 4.19 and 2.1.7. Clubfoot reaches "not covered" via 5.2.3, and the reasoning mentions the heading path ("under Exclusions > Specific Exclusions")
+   - Better: "are reports and diagnosis covered" now says they are when part of a covered hospitalisation, instead of a bare "No"
+   - Worse: the clubfoot answer field holds the model's reasoning ("I need to produce output per instruction...") instead of an answer
+   - Still wrong: "can I add my parents" says the documents don't mention it. The clause that answers it ranks 4th in vectors, 20th after fusion and 28th after re-ranking. BM25 misses it, likely because "add" doesn't match "Addition" without stemming
+   - Citation check: 18 of 23 point to a retrieved clause, none don't, 5 name no clause
+
+So far each fix has moved the failure one stage earlier: from reading the clause, to citing it, to retrieving it. Smaller chunks bought exact citations and cost recall on questions worded differently from the policy. Re-ranking with a cut of 15 gets clubfoot and copay right but loses "add my parents", which the narrow top-5 pool found. In several misses the vector search alone ranked the right clause higher than fusion or re-ranking did.
+
+Four runs produced a broken answer (repeated quote marks, the single word "analysis", a refusal, reasoning in place of the answer), so the answer step needs a check of its own before anything ships
 
 ## Roadmap
 
 - [x] Walking skeleton: convert, chunk, BM25 + vectors, RRF, cited answer
-- [ ] Eval set: questions with the clause each answer should cite, including ones the policy is silent on
+- [x] Eval set: questions with the clause each answer should cite, including ones the policy is silent on (`evals/answer_key.json`; 2 rows checked by hand against the wording, 8 by an AI agent, marked per row)
 - [ ] Clean-up per insurer template (page headers and footers, sidebars, heading hierarchy rebuilt from clause numbers) and a check that flags documents whose headings don't match the clause list
 - [ ] Parent-child chunks for long sections like Definitions
 - [ ] Cross-encoder re-ranking, measured against the eval set
