@@ -1,5 +1,3 @@
-from datetime import date
-
 from fineprint.chunk import split_on_headings
 from fineprint.convert import get_or_create_markdown
 from fineprint.eval import LLMAnswer
@@ -39,7 +37,7 @@ def get_answer_for_query(query: str):
 if __name__ == "__main__":
     import json
 
-    run_file = "data/runs/2026-10-25_paths.jsonl"
+    run_file = "data/runs/2026-10-26_subclauses.jsonl"
 
     questions = []
 
