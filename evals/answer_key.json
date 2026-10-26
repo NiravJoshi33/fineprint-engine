@@ -1,0 +1,22 @@
+[
+  {"id": 1, "type": "out_of_scope", "clauses": ["6.2.8", "6.2.2"], "checked_by": "owner",
+   "expected": "No rates in the wording, so refuse an amount. Can name what drives the premium: zone (Gujarat is Zone 1) and risk loading"},
+  {"id": 2, "type": "silent", "clauses": ["4.2.1"], "checked_by": "agent",
+   "expected": "No clause mentions ADHD or mental illness. Must not say 'not covered'. Inpatient treatment follows 4.2; routine ADHD care is outpatient, which has no benefit"},
+  {"id": 3, "type": "answer", "clauses": ["5.2.3", "2.1.6"], "checked_by": "owner",
+   "expected": "Not covered. Clubfoot counts as an external congenital anomaly, which is a specific exclusion"},
+  {"id": 4, "type": "answer", "clauses": ["5.1.1", "5.1.2", "5.1.3", "5.2.1", "4.21", "Annexure I", "6.2.2", "6.2.3", "5.2.3", "5.2.4"], "checked_by": "agent",
+   "expected": "Catches list, partial credit per item: PED wait 36 months, specified diseases 24, 30-day initial wait, personal waiting period up to 48, proportionate deduction for a higher room, non-payable items, risk loading, waits restart for new members and sum insured increases, congenital and dental exclusions"},
+  {"id": 5, "type": "answer", "clauses": ["6.2.3"], "checked_by": "agent",
+   "expected": "Members can be added by endorsement or at renewal, and PED, exclusions, loading and waits apply afresh for them. Which relatives are eligible isn't in the wording (it's in the prospectus). Cat: refuse, pets aren't insurable here"},
+  {"id": 6, "type": "answer", "clauses": ["4.19", "2.1.7"], "checked_by": "agent",
+   "expected": "No co-pay by default: Co-Payment is an optional benefit. If opted, you bear a percentage of each admissible claim; the wording doesn't state the percentage. It never applies to health check-up, Live Healthy, second opinion, shared accommodation cash, e-consultation, personal accident or hospital cash"},
+  {"id": 7, "type": "answer", "clauses": ["4.13", "4.3"], "checked_by": "agent",
+   "expected": "No OPD benefit, so no amount. Unlimited e-consultations; consultations covered only around a paid hospitalisation. Trap: the policy defines OPD, but a definition isn't a benefit"},
+  {"id": 8, "type": "answer", "clauses": ["4.3", "5.1.4", "4.6", "4.2.1"], "checked_by": "agent",
+   "expected": "Tests are covered during a covered admission, and 60 days before and 180 after a paid hospitalisation. An admission just for tests is excluded. Listed check-up tests once a year, cashless only"},
+  {"id": 9, "type": "answer", "clauses": ["5.1.1", "4.20", "5.1.2", "5.2.1"], "checked_by": "agent",
+   "expected": "No list of excluded PEDs. Declared and accepted PEDs are covered after 36 months, less prior continuous cover. The wait can be changed as an optional benefit. Listed conditions wait 24 months. A personal waiting period of up to 48 months can apply to an insured's specific conditions"},
+  {"id": 10, "type": "out_of_scope", "clauses": [], "checked_by": "agent",
+   "expected": "Refuse the opinion. Offer to explain what the policy covers and excludes"}
+]
