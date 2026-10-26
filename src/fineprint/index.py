@@ -1,9 +1,11 @@
 import bm25s
 from bm25s import BM25
 
+
 def get_bm25_retriever():
     retriever = bm25s.BM25()
     return retriever
+
 
 def index_corpus_with_bm25(corpus: list[str]):
     corpus_tokens = bm25s.tokenize(corpus)
@@ -11,26 +13,26 @@ def index_corpus_with_bm25(corpus: list[str]):
     retriever.index(corpus_tokens)
     return retriever
 
-def query_bm25(query: str, retriever: BM25):
+
+def query_bm25(query: str, retriever: BM25, top_k: int = 5):
     query_tokens = bm25s.tokenize(query)
-    [doc_indices], scores = retriever.retrieve(query_tokens, k=5)
+    [doc_indices], scores = retriever.retrieve(query_tokens, k=top_k)
     return doc_indices.tolist(), scores
 
 
 if __name__ == "__main__":
-
     from fineprint.chunk import split_on_headings
     from fineprint.convert import get_or_create_markdown
-    
-    md_text = get_or_create_markdown(raw_file="raw/niva_reassure2.pdf", markdown_file="data/niva_reassure2.md")
+
+    md_text = get_or_create_markdown(
+        raw_file="raw/niva_reassure2.pdf", markdown_file="data/niva_reassure2.md"
+    )
     chunks = split_on_headings(md_text, "NBHHLIP27054V032627")
     chunk_texts = [chunk["chunk"] for chunk in chunks]
 
     retriever = index_corpus_with_bm25(chunk_texts)
-    indices, scores = query_bm25(query="moratorium period", retriever=retriever)
-    
-    
+    indices, scores = query_bm25(
+        query="moratorium period", retriever=retriever, top_k=30
+    )
+
     print(indices)
-
-
-    
