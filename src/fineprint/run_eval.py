@@ -3,6 +3,7 @@ from fineprint.convert import get_or_create_markdown
 from fineprint.eval import LLMAnswer
 from fineprint.index import index_corpus_with_bm25, query_bm25
 from fineprint.llm import get_answer
+from fineprint.rerank import rerank_docs
 from fineprint.rrf import join_documents_with_rrf
 from fineprint.vectors import get_embeddings, vector_search
 
@@ -19,10 +20,10 @@ corpus_embeddings = get_embeddings(corpus=chunk_texts)
 
 def get_answer_for_query(query: str):
 
-    indices, _ = query_bm25(query=query, retriever=retriever)
+    indices, _ = query_bm25(query=query, retriever=retriever, top_k=30)
 
     doc_indices = vector_search(
-        query=query, corpus_embeddings=corpus_embeddings, top_k=5
+        query=query, corpus_embeddings=corpus_embeddings, top_k=30
     )
 
     joined_docs_indices = join_documents_with_rrf(
@@ -30,14 +31,17 @@ def get_answer_for_query(query: str):
     )
     docs = [chunks[i] for i in joined_docs_indices]
 
-    answer = get_answer(query=query, documents=docs)
-    return answer, docs
+    reranked_doc_indices = rerank_docs(query, [doc["chunk"] for doc in docs], 15)
+    reranked_docs = [docs[i] for i in reranked_doc_indices]
+
+    answer = get_answer(query=query, documents=reranked_docs)
+    return answer, reranked_docs
 
 
 if __name__ == "__main__":
     import json
 
-    run_file = "data/runs/2026-10-26_subclauses.jsonl"
+    run_file = "data/runs/2026-10-26_bge_reranker_base_top15.jsonl"
 
     questions = []
 
