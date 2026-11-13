@@ -25,6 +25,16 @@ def calc_hit_rate(expected: list, to_check: list) -> tuple[int, int]:
 
 
 if __name__ == "__main__":
+    import argparse
+
+    parser = argparse.ArgumentParser(
+        description="Grade the pipeline run against answer key."
+    )
+
+    parser.add_argument("--run_file", type=str, help="Run file Path", required=True)
+
+    args = parser.parse_args()
+
     answer_key = load_json_file(file="evals/answer_key.json")
     questions = load_json_file(file="evals/questions.json")
 
@@ -37,7 +47,7 @@ if __name__ == "__main__":
 
     # print(qna_map)
 
-    run_data = load_run_file(file="data/runs/2026-10-25_baseline.jsonl")
+    run_data = load_run_file(file=args.run_file)
 
     a_type_flag_map = {"out_of_scope": False, "answer": True, "silent": False}
 
@@ -81,6 +91,10 @@ if __name__ == "__main__":
             f"doc contains flag correct: expected: {expected_docs_answer_query}, got {answered_docs_answer_query}"
         )
         print("---")
+
+    print("---REPORT---")
+    print(f"Run File: {args.run_file}")
+    print()
 
     print(
         f"average retrieved hit rate: {sum(all_retrieved_hit_rates) / len(all_retrieved_hit_rates)}"
