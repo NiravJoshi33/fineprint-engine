@@ -64,7 +64,7 @@ Four runs produced a broken answer (repeated quote marks, the single word "analy
 ## Roadmap
 
 - [x] Walking skeleton: convert, chunk, BM25 + vectors, RRF, cited answer
-- [x] Eval set: questions with the clause each answer should cite, including ones the policy is silent on (`evals/answer_key.json`; 2 rows checked by hand against the wording, 8 by an AI agent, marked per row)
+- [x] Eval set: questions with the clause each answer should cite, including ones the policy is silent on (`evals/answer_key.json`; 4 rows checked by hand against the wording, 6 by an AI agent, marked per row)
 - [ ] Clean-up per insurer template (page headers and footers, sidebars, heading hierarchy rebuilt from clause numbers) and a check that flags documents whose headings don't match the clause list
 - [ ] Parent-child chunks for long sections like Definitions
 - [ ] Cross-encoder re-ranking, measured against the eval set
