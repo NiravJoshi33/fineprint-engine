@@ -15,7 +15,7 @@ A RAG engine over Indian health insurance policy wordings. Answers cite the clau
 1. PDF to markdown with PyMuPDF4LLM, cached per document
 2. Chunks split on clause headings and numbered sub-clauses (`- 5.2.3.`), each tagged with its clause id, the policy's UIN and its heading path rebuilt from the clause number (e.g. `5 Exclusions > 5.2 Specific Exclusions > 5.2.2 ...`)
 3. Hybrid retrieval: BM25 (`bm25s`) and dense vectors (`bge-small-en-v1.5`), merged with reciprocal rank fusion (k = 60)
-4. An LLM (`gpt-oss-120b` via OpenRouter) answers only from the retrieved clauses, with structured output: the answer, its citations as (UIN, clause id) pairs, and a flag for when the clauses don't answer the question
+4. An LLM (`deepseek-v4.1-flash` via OpenCode Go, set by `FINEPRINT_LLM_MODEL`; runs up to 26 Oct 2026 used `gpt-oss-120b` via OpenRouter) answers only from the retrieved clauses, with structured output: the answer, its citations as (UIN, clause id) pairs, and a flag for when the clauses don't answer the question
 
 Asked "What is the moratorium period in this policy?", it answers 60 months and cites clause 6.1.10.
 
@@ -83,7 +83,7 @@ Requires Python 3.12+ and [uv](https://docs.astral.sh/uv/).
 ```sh
 uv sync
 mkdir -p raw data
-echo "OPENROUTER_API_KEY=..." > .env
+echo "OPENCODE_API_KEY=..." > .env
 uv run python -m fineprint.llm
 ```
 

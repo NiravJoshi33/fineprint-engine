@@ -1,4 +1,5 @@
 from os import getenv
+from uuid import uuid4
 
 from dotenv import load_dotenv
 from openai import OpenAI
@@ -7,13 +8,21 @@ from fineprint.eval import LLMAnswer
 
 load_dotenv(dotenv_path=".env")
 
-llm_api_key = getenv("OPENROUTER_API_KEY")
+llm_api_key = getenv("OPENCODE_API_KEY")
 
 if not llm_api_key:
-    raise OSError("Environment Variable 'OPENROUTER_API_KEY' not set")
+    raise OSError("Environment Variable 'OPENCODE_API_KEY' not set")
+
+# OpenCode Go, OpenAI-compatible endpoint. Model ids are bare ("deepseek-v4.1-flash"), not "opencode-go/...".
+LLM_MODEL = getenv("FINEPRINT_LLM_MODEL", "deepseek-v4.1-flash")
 
 client = OpenAI(
-    base_url="https://openrouter.ai/api/v1", api_key=llm_api_key, max_retries=1
+    base_url="https://opencode.ai/inference/go/openai/v1",
+    api_key=llm_api_key,
+    max_retries=1,
+    # Go's docs ask clients to name themselves instead of sending a generic SDK user agent,
+    # and to send one stable session id per conversation; one process run counts as one session
+    default_headers={"User-Agent": "fineprint-engine/0.1", "x-opencode-session": str(uuid4())},
 )
 
 
@@ -44,8 +53,7 @@ def get_answer(query: str, documents: list[dict]):
     """
 
     completion = client.chat.completions.create(
-        extra_body={"provider": {"require_parameters": True}},
-        model="openai/gpt-oss-120b",
+        model=LLM_MODEL,
         messages=[
             {"role": "system", "content": system_prompt},
             {"role": "user", "content": user_prompt},
