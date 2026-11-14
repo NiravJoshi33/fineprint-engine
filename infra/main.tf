@@ -57,3 +57,8 @@ resource "aws_lambda_function" "fineprint" {
     }
   }
 }
+
+resource "aws_lambda_function_url" "fineprint_url" {
+  function_name      = aws_lambda_function.fineprint.function_name
+  authorization_type = "AWS_IAM"
+}
