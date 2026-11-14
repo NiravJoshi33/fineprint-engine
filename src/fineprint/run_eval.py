@@ -1,7 +1,7 @@
 from fineprint.chunk import split_on_headings
 from fineprint.convert import get_or_create_markdown
 from fineprint.eval import LLMAnswer
-from fineprint.gateway import LLMGateway
+from fineprint.gateway import LLMGateway, ProviderName
 from fineprint.index import index_corpus_with_bm25, query_bm25
 from fineprint.llm import get_answer
 from fineprint.rerank import rerank_docs
@@ -21,7 +21,7 @@ retriever = index_corpus_with_bm25(chunk_texts)
 corpus_embeddings = get_embeddings(corpus=chunk_texts)
 
 
-def get_answer_for_query(query: str):
+def get_answer_for_query(query: str, pin: ProviderName | None = None):
 
     indices, _ = query_bm25(query=query, retriever=retriever, top_k=30)
 
@@ -37,9 +37,7 @@ def get_answer_for_query(query: str):
     reranked_doc_indices = rerank_docs(query, [doc["chunk"] for doc in docs], 15)
     reranked_docs = [docs[i] for i in reranked_doc_indices]
 
-    result = get_answer(
-        query=query, documents=reranked_docs, gateway=gateway, pin="opencode_go"
-    )
+    result = get_answer(query=query, documents=reranked_docs, gateway=gateway, pin=pin)
     return result.parsed.answer, reranked_docs, result
 
 
@@ -73,7 +71,7 @@ if __name__ == "__main__":
     for data in questions:
         query = data["query"]
         print(f"processing query: {query}...")
-        answer, docs, result = get_answer_for_query(query)
+        answer, docs, result = get_answer_for_query(query, pin="opencode_go")
         new_result = {
             "q_id": data["id"],
             "query": query,
