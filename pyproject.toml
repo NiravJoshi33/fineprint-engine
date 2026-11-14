@@ -15,6 +15,7 @@ dependencies = [
     "pymupdf4llm==2.0",
     "python-dotenv>=1.2.4",
     "sentence-transformers>=6.1.0",
+    "torch==2.14.1",
 ]
 
 [project.scripts]
@@ -28,3 +29,13 @@ build-backend = "uv_build"
 benchmark = [
     "docling>=2.150.0",
 ]
+
+# Linux (the Lambda image) takes CPU-only torch: PyPI's Linux wheels pull in ~15 CUDA packages,
+# GBs of GPU libraries a Lambda can't use. macOS keeps PyPI torch.
+[tool.uv.sources]
+torch = [{ index = "pytorch-cpu", marker = "sys_platform == 'linux'" }]
+
+[[tool.uv.index]]
+name = "pytorch-cpu"
+url = "https://download.pytorch.org/whl/cpu"
+explicit = true

@@ -1,0 +1,8 @@
+# Allowlist: the build sees only what the Dockerfile uses.
+# Keeps .env (keys), raw/ (insurer PDFs), .venv (1.5 GB) and .git out of the build context.
+*
+!pyproject.toml
+!uv.lock
+!src/fineprint/
+!data/niva_reassure2.md
+**/__pycache__
