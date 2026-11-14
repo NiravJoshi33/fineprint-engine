@@ -6,6 +6,10 @@
 # Markdown converted from those PDFs, same terms
 /data/
 
+# infra
+infra/.terraform/
+*.tfstate*
+
 # Logs
 logs
 *.log
