@@ -30,11 +30,29 @@ RUN --mount=from=uv,source=/uv,target=/bin/uv \
     --mount=type=bind,source=pyproject.toml,target=pyproject.toml \
     uv sync --frozen --no-dev --no-install-project --no-editable
 
-# Stage 3, the image that ships: a clean base plus the installed packages, the code and the policy text
+# Stage 3: downloads the two models the pipeline loads, through the same loaders the code uses,
+# so only the files they read come down. Names must match vectors.py and rerank.py: with
+# HF_HUB_OFFLINE=1 a mismatch fails at cold start instead of silently downloading.
+FROM builder AS models
+ENV HF_HOME=/opt/hf
+RUN /opt/venv/bin/python -c "\
+from sentence_transformers import CrossEncoder, SentenceTransformer; \
+SentenceTransformer('BAAI/bge-small-en-v1.5'); \
+CrossEncoder('BAAI/bge-reranker-base')"
+
+# Stage 4, the image that ships: a clean base plus the installed packages, the models, the code
+# and the policy text. Ordered from least to most often changed: Docker rebuilds (and ECR
+# re-uploads) every layer after the first changed one, so a code change moves KBs, not GBs.
 FROM public.ecr.aws/lambda/python:3.12
 
 # the venv's packages go straight into /var/task, which is on Lambda's import path
 COPY --from=builder /opt/venv/lib/python3.12/site-packages ${LAMBDA_TASK_ROOT}
+
+# Lambda's filesystem is read-only except /tmp, so the models ship in the image; offline mode
+# stops the libraries from calling Hugging Face at cold start. TQDM_DISABLE keeps bm25s
+# progress bars out of the CloudWatch logs.
+COPY --from=models /opt/hf /opt/hf
+ENV HF_HOME=/opt/hf HF_HUB_OFFLINE=1 TQDM_DISABLE=1
 
 # The package folder itself, so `import fineprint` resolves from /var/task
 COPY ./src/fineprint ${LAMBDA_TASK_ROOT}/fineprint
