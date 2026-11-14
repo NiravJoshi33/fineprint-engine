@@ -38,7 +38,7 @@ def get_answer_for_query(query: str):
     reranked_docs = [docs[i] for i in reranked_doc_indices]
 
     result = get_answer(
-        query=query, documents=reranked_docs, gateway=gateway, pin="azure_foundry"
+        query=query, documents=reranked_docs, gateway=gateway, pin="opencode_go"
     )
     return result.parsed.answer, reranked_docs, result
 
