@@ -35,13 +35,15 @@ def format_document(chunk: dict) -> str:
 
 
 def get_answer(query: str, documents: list[dict]):
+    # No "Never conclude it is not covered." line: it stopped deepseek-v4.1-flash from applying a
+    # retrieved exclusion (clubfoot, 5.2.3) in all 15 runs where the exclusion text reached it. Taking it out fixed that without the
+    # silent question turning into "not covered" (README, change 7, 3 runs: thin evidence)
     system_prompt = """
         Answer the query using only the provided documents from insurance policy and
         cite the clause along with the answer. If documents don't cover the answer
         for the query, say so.
         Cite only the uin and clause_id values shown in the document labels.
         If the documents don't mention something, say they don't mention it.
-        Never conclude it is not covered.
     """
 
     user_prompt = f"""

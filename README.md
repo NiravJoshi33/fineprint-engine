@@ -92,7 +92,22 @@ The gpt-oss side run covered 3 questions, so it has no comparable numbers.
 - 20 answers set the flag True but named their clauses only inside the answer text, with an empty citation list, so the cited score misses them. 24 more did the same with the flag False, which the schema asks for ("Empty when documents_answer_query is false"). That rule also hides what a hedged answer leaned on: several clubfoot answers quote the exclusion and cite nothing
 - Calls took about 15 s at the median. A few stalled past the 120 s client timeout and went through on a retry
 
-The order holds across both models: retrieval is still the bottleneck, and keep 15 is still the best setup. The next failure is different. With the exclusion in front of it, this model won't apply it to a condition the clause doesn't name, and the prompt's own rule is the likeliest reason. Taking that line out of the prompt is the next change to measure.
+The order holds across both models: retrieval is still the bottleneck, and keep 15 is still the best setup. The next failure is different. With the exclusion in front of it, this model won't apply it to a condition the clause doesn't name, and the prompt's own rule is the likeliest reason.
+
+### 7. Prompt without "Never conclude it is not covered" (2026-11-14)
+
+Keep 15 on `deepseek-v4.1-flash`, three runs, with that one line removed from the system prompt. Retrieval is unchanged.
+
+| | Line in (change 6) | Line out |
+|---|---|---|
+| Clubfoot | 0 of 3 apply the exclusion, all hedge | 3 of 3 apply it, citing 2.1.6 and 5.2.3 |
+| ADHD (the silent question) | never "not covered" | never "not covered" |
+| Cited | 0.43 (0.36 to 0.50) | 0.46 (0.39 to 0.50) |
+| Flag | 8, 7, 7 | 8, 8, 8 |
+
+- All three clubfoot answers now make the step from "external congenital anomaly" to club foot: "would be excluded", "would likely be excluded", "is not covered". Each still says the policy doesn't name club foot
+- The line was there because "not in the retrieved clauses" kept turning into "not covered". The ADHD question is the only silent one in the set, so one question in three runs is thin evidence that the failure won't come back. More silent questions in the eval set would settle it
+- Cited and flag moved by less than the noise between runs of one change
 
 ## Roadmap
 
