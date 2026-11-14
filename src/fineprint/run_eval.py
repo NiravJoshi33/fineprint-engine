@@ -6,38 +6,47 @@ from fineprint.index import index_corpus_with_bm25, query_bm25
 from fineprint.llm import get_answer
 from fineprint.rerank import rerank_docs
 from fineprint.rrf import join_documents_with_rrf
+from fineprint.timing import timed
 from fineprint.vectors import get_embeddings, vector_search
 
 gateway = LLMGateway()
 
-md_text = get_or_create_markdown(
-    raw_file="raw/niva_reassure2.pdf", markdown_file="data/niva_reassure2.md"
-)
-chunks = split_on_headings(md_text, "NBHHLIP27054V032627")
-chunk_texts = [chunk["chunk"] for chunk in chunks]
+with timed("load markdown and chunk"):
+    md_text = get_or_create_markdown(
+        raw_file="raw/niva_reassure2.pdf", markdown_file="data/niva_reassure2.md"
+    )
+    chunks = split_on_headings(md_text, "NBHHLIP27054V032627")
+    chunk_texts = [chunk["chunk"] for chunk in chunks]
 
 # both indexes are built once and reused for every query
-retriever = index_corpus_with_bm25(chunk_texts)
-corpus_embeddings = get_embeddings(corpus=chunk_texts)
+with timed("build bm25 index"):
+    retriever = index_corpus_with_bm25(chunk_texts)
+with timed("embed corpus"):
+    corpus_embeddings = get_embeddings(corpus=chunk_texts)
 
 
 def get_answer_for_query(query: str, pin: ProviderName | None = None):
 
-    indices, _ = query_bm25(query=query, retriever=retriever, top_k=30)
+    with timed("retrieve (bm25 + vectors + rrf)"):
+        indices, _ = query_bm25(query=query, retriever=retriever, top_k=30)
 
-    doc_indices = vector_search(
-        query=query, corpus_embeddings=corpus_embeddings, top_k=30
-    )
+        doc_indices = vector_search(
+            query=query, corpus_embeddings=corpus_embeddings, top_k=30
+        )
 
-    joined_docs_indices = join_documents_with_rrf(
-        bm25docs_indices=indices, vector_docs_indices=doc_indices
-    )
-    docs = [chunks[i] for i in joined_docs_indices]
+        joined_docs_indices = join_documents_with_rrf(
+            bm25docs_indices=indices, vector_docs_indices=doc_indices
+        )
+        docs = [chunks[i] for i in joined_docs_indices]
 
-    reranked_doc_indices = rerank_docs(query, [doc["chunk"] for doc in docs], 15)
-    reranked_docs = [docs[i] for i in reranked_doc_indices]
+    with timed(f"rerank {len(docs)} docs"):
+        reranked_doc_indices = rerank_docs(query, [doc["chunk"] for doc in docs], 15)
+        reranked_docs = [docs[i] for i in reranked_doc_indices]
 
-    result = get_answer(query=query, documents=reranked_docs, gateway=gateway, pin=pin)
+    with timed("llm"):
+        result = get_answer(
+            query=query, documents=reranked_docs, gateway=gateway, pin=pin
+        )
     return result.parsed.answer, reranked_docs, result
 
 

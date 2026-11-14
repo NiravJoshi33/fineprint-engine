@@ -1,6 +1,9 @@
 from sentence_transformers import CrossEncoder
 
-model = CrossEncoder(model_name_or_path="BAAI/bge-reranker-base")
+from fineprint.timing import timed
+
+with timed("load reranker"):
+    model = CrossEncoder(model_name_or_path="BAAI/bge-reranker-base")
 
 
 def rerank_docs(query: str, docs: list, top_k: int = 10):

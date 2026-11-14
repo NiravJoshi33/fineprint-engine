@@ -1,6 +1,10 @@
 import json
+import time
 
-from fineprint.run_eval import get_answer_for_query
+_init_start = time.perf_counter()
+from fineprint.run_eval import get_answer_for_query  # noqa: E402  loads models, builds indexes
+
+print(f"timing init total: {time.perf_counter() - _init_start:.1f}s", flush=True)
 
 
 def handler(event: dict, context):

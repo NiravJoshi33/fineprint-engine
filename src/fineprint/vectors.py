@@ -1,7 +1,16 @@
-from sentence_transformers import SentenceTransformer
-import numpy as np
+import os
 
-model = SentenceTransformer(model_name_or_path="BAAI/bge-small-en-v1.5")
+import numpy as np
+import torch
+from sentence_transformers import SentenceTransformer
+
+from fineprint.timing import timed
+
+# On Lambda, torch may size its thread pool from the host's CPUs, not the function's share
+print(f"threads: torch={torch.get_num_threads()} os.cpu_count={os.cpu_count()}", flush=True)
+
+with timed("load embedding model"):
+    model = SentenceTransformer(model_name_or_path="BAAI/bge-small-en-v1.5")
 
 def get_embeddings(corpus: list[str]):
     return model.encode(corpus, normalize_embeddings=True)
