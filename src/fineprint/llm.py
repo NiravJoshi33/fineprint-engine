@@ -5,25 +5,11 @@ from dotenv import load_dotenv
 from openai import OpenAI
 
 from fineprint.eval import LLMAnswer
+from fineprint.gateway import GatewayResult, LLMGateway, ProviderName
 
 load_dotenv(dotenv_path=".env")
 
-llm_api_key = getenv("OPENCODE_API_KEY")
-
-if not llm_api_key:
-    raise OSError("Environment Variable 'OPENCODE_API_KEY' not set")
-
-# OpenCode Go, OpenAI-compatible endpoint. Model ids are bare ("deepseek-v4.1-flash"), not "opencode-go/...".
-LLM_MODEL = getenv("FINEPRINT_LLM_MODEL", "deepseek-v4.1-flash")
-
-client = OpenAI(
-    base_url="https://opencode.ai/inference/go/openai/v1",
-    api_key=llm_api_key,
-    max_retries=1,
-    # Go's docs ask clients to name themselves instead of sending a generic SDK user agent,
-    # and to send one stable session id per conversation; one process run counts as one session
-    default_headers={"User-Agent": "fineprint-engine/0.1", "x-opencode-session": str(uuid4())},
-)
+gateway = LLMGateway()
 
 
 def format_document(chunk: dict) -> str:
@@ -34,7 +20,9 @@ def format_document(chunk: dict) -> str:
     return f"[uin: {chunk['policy_id']} | clause_id: {clause_id}] | path: {path}\n{chunk['chunk']}"
 
 
-def get_answer(query: str, documents: list[dict]):
+def get_answer(
+    query: str, documents: list[dict], gateway: LLMGateway, pin: ProviderName | None
+) -> GatewayResult:
     # No "Never conclude it is not covered." line: it stopped deepseek-v4.1-flash from applying a
     # retrieved exclusion (clubfoot, 5.2.3) in all 15 runs where the exclusion text reached it. Taking it out fixed that without the
     # silent question turning into "not covered" (README, change 7, 3 runs: thin evidence)
@@ -54,24 +42,14 @@ def get_answer(query: str, documents: list[dict]):
         {"\n\n".join(format_document(document) for document in documents)}
     """
 
-    completion = client.chat.completions.create(
-        model=LLM_MODEL,
-        messages=[
-            {"role": "system", "content": system_prompt},
-            {"role": "user", "content": user_prompt},
-        ],
-        response_format={
-            "type": "json_schema",
-            "json_schema": {
-                "name": "llm_response",
-                "strict": True,
-                "schema": LLMAnswer.model_json_schema(),
-            },
-        },
-        timeout=120,
-    )
+    messages = [
+        {"role": "system", "content": system_prompt},
+        {"role": "user", "content": user_prompt},
+    ]
 
-    return completion.choices[0].message.content
+    result = gateway.ask_llm(messages, LLMAnswer, pin)
+
+    return result
 
 
 if __name__ == "__main__":
@@ -104,8 +82,8 @@ if __name__ == "__main__":
         )
         docs = [chunks[i] for i in joined_docs_indices]
 
-        answer = get_answer(query=query, documents=docs)
-        return answer
+        result = get_answer(query=query, documents=docs, gateway=gateway)
+        return result.content
 
     answer = get_answer_for_query(query="What is the moratorium period in this policy?")
     answer2 = get_answer_for_query(query="Does this policy cover my pet dog?")
