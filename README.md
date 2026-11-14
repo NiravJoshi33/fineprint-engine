@@ -2,7 +2,7 @@
 
 A RAG engine over Indian health insurance policy wordings. Answers cite the clause they come from and say so when the policy is silent.
 
-**Status: early.** A walking skeleton runs end to end on one policy. Each stage is deliberately crude and gets replaced one at a time, measured against an eval set. The roadmap below is the plan, not a claim.
+**Status: early.** A walking skeleton runs end to end on one policy, deployed on AWS Lambda (see [Deployment](#deployment)). Each stage is deliberately crude and gets replaced one at a time, measured against an eval set. The roadmap below is the plan, not a claim.
 
 ## Why this domain
 
@@ -123,7 +123,22 @@ Keep 15 on `deepseek-v4.1-flash`, three runs, with that one line removed from th
 - [ ] Prompt-injection test: an instruction hidden in a policy PDF must not be followed
 - [ ] PII redaction for a user's uploaded policy schedule: names, ages, policy and ID numbers swapped for placeholders before any LLM call, restored in the answer
 - [ ] Versioning: product lists, UINs, content hashes, section-level diffs between versions
+- [x] Deployed on AWS: Lambda from a container image, IAM-authenticated function URL, infrastructure in Terraform
+- [ ] CI/CD: GitHub Actions deploys through OIDC, no AWS keys stored in GitHub
 - [ ] Deployed API with an eval report against a long-context baseline
+
+## Deployment
+
+On AWS, all in Terraform (`infra/`):
+
+- A Lambda function from a container image (`Dockerfile`, arm64): AWS's Python base image, CPU-only torch, and both models baked in, since Lambda's filesystem is read-only
+- The image in ECR, tagged with the git commit it was built from
+- An IAM execution role that can only write logs
+- A function URL with `AWS_IAM` auth, so only requests signed with AWS credentials get in
+
+Provider keys come from Terraform variables in a gitignored `.auto.tfvars`. Each stage logs its time to CloudWatch (`src/fineprint/timing.py`).
+
+Measured on a new account, which is capped at 3,008 MB (2 vCPUs): a cold request takes about 90 s, mostly embedding the corpus at startup (24 s) and re-ranking 43 chunks (42 s). The same work takes about 2 s on an M-series Mac. Precomputing the embeddings into the image and sending the re-ranker fewer, shorter chunks are the next fixes. CI/CD is not built yet.
 
 ## Running it
 
