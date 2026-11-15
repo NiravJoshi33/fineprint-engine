@@ -84,7 +84,7 @@ resource "aws_iam_role" "fineprint_gh_deploy" {
         "Condition" = {
           "StringEquals" = {
             "token.actions.githubusercontent.com:aud" = "sts.amazonaws.com"
-            "token.actions.githubusercontent.com:sub" = "repo:NiravJoshi33/fineprint-engine:ref:refs/heads/main"
+            "token.actions.githubusercontent.com:sub" = "repo:NiravJoshi33@33543795/fineprint-engine@1426559210:ref:refs/heads/main"
           }
         }
       }
