@@ -3,16 +3,36 @@ on:
   push:
     branches:
       - main
+    # Only what goes into the image (mirrors .dockerignore), so docs and infra commits don't rebuild 1.7 GB
+    paths:
+      - "src/fineprint/**"
+      - "pyproject.toml"
+      - "uv.lock"
+      - "Dockerfile"
+      - ".dockerignore"
+      - ".github/workflows/deploy.yml"
+  # Manual run, for when only the policy text in S3 changed
+  workflow_dispatch:
+
+# A second merge waits for the running deploy instead of racing it to Lambda
+concurrency:
+  group: deploy
+  cancel-in-progress: false
 
 env:
-  AWS_REGION : "eu-north-1"
+  AWS_REGION: "eu-north-1"
+  REGISTRY: 342094638052.dkr.ecr.eu-north-1.amazonaws.com
+  ECR_REPOSITORY: fineprint
+  LAMBDA_FUNCTION: fineprint
+  DATA_BUCKET: fineprint-data-342094638052
 # permission can be added at job level or workflow level
 permissions:
   id-token: write   # This is required for requesting the JWT
   contents: read    # This is required for actions/checkout
 jobs:
   Deploy:
-    runs-on: ubuntu-latest
+    # Lambda runs arm64; building on an arm64 runner avoids emulating it, which is several times slower
+    runs-on: ubuntu-24.04-arm
     steps:
       - name: Git clone the repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -23,6 +43,25 @@ jobs:
           role-session-name: fineprint-deploy-${{ github['run_id'] }}
           aws-region: ${{ env.AWS_REGION }}
 
-      - name: Get caller identity
+      # data/ is gitignored (insurer wording, redistribution terms unchecked), so it comes from the private bucket
+      - name: Fetch policy text
+        run: aws s3 cp "s3://${DATA_BUCKET}/niva_reassure2.md" data/niva_reassure2.md
+
+      # The AWS CLI instead of another third-party action: one less dependency to pin and trust
+      - name: Log in to ECR
+        run: aws ecr get-login-password | docker login --username AWS --password-stdin "$REGISTRY"
+
+      # Tagged with the 7-character commit SHA, like the first manual push (87f7789)
+      - name: Build and push the image
         run: |
-          aws sts get-caller-identity
+          image="${REGISTRY}/${ECR_REPOSITORY}:${GITHUB_SHA::7}"
+          docker build --platform linux/arm64 -t "$image" .
+          docker push "$image"
+          echo "IMAGE=$image" >> "$GITHUB_ENV"
+
+      # update-function-code returns before the switch finishes; the wait fails the job if it doesn't succeed
+      - name: Point Lambda at the new image
+        run: |
+          aws lambda update-function-code --function-name "$LAMBDA_FUNCTION" --image-uri "$IMAGE" --query LastUpdateStatus --output text
+          aws lambda wait function-updated --function-name "$LAMBDA_FUNCTION"
+          aws lambda get-function-configuration --function-name "$LAMBDA_FUNCTION" --query '[LastUpdateStatus, CodeSha256]' --output text

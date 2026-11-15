@@ -138,7 +138,14 @@ On AWS, all in Terraform (`infra/`):
 
 Provider keys come from Terraform variables in a gitignored `.auto.tfvars`. Each stage logs its time to CloudWatch (`src/fineprint/timing.py`).
 
-Measured on a new account, which is capped at 3,008 MB (2 vCPUs): a cold request takes about 90 s, mostly embedding the corpus at startup (24 s) and re-ranking 43 chunks (42 s). The same work takes about 2 s on an M-series Mac. Precomputing the embeddings into the image and sending the re-ranker fewer, shorter chunks are the next fixes. CI/CD is not built yet.
+Measured on a new account, which is capped at 3,008 MB (2 vCPUs): a cold request takes about 90 s, mostly embedding the corpus at startup (24 s) and re-ranking 43 chunks (42 s). The same work takes about 2 s on an M-series Mac. Precomputing the embeddings into the image and sending the re-ranker fewer, shorter chunks are the next fixes.
+
+Deploys run from GitHub Actions (`.github/workflows/deploy.yml`) on every push to `main` that changes what goes into the image:
+
+- It signs in to AWS through OIDC, so no AWS keys are stored in GitHub. The role trusts only this repo's `main` and can only push to this ECR repo, update this one function and read the policy text
+- It builds on an arm64 runner, pushes the image tagged with the commit and points the Lambda at it
+- The policy text comes from a private S3 bucket, since `data/` isn't in git. Terraform uploads it; after changing it, run the workflow by hand
+- Terraform creates the function, then leaves its image to the workflow. ECR keeps the last 3 images, so a rollback is `aws lambda update-function-code --image-uri` with an earlier tag
 
 ## Running it
 
