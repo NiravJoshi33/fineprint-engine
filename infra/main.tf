@@ -12,6 +12,28 @@ resource "aws_ecr_repository" "fineprint" {
   }
 }
 
+# Each image is ~1.7 GB and CI pushes one per deploy, so storage would grow with every merge.
+# Three keeps the live image plus two to roll back to.
+resource "aws_ecr_lifecycle_policy" "fineprint" {
+  repository = aws_ecr_repository.fineprint.name
+  policy = jsonencode({
+    rules = [
+      {
+        rulePriority = 1
+        description  = "Keep the last 3 images"
+        selection = {
+          tagStatus   = "any"
+          countType   = "imageCountMoreThan"
+          countNumber = 3
+        }
+        action = {
+          type = "expire"
+        }
+      },
+    ]
+  })
+}
+
 resource "aws_iam_role" "fineprint_lambda" {
   name = "fineprint_lambda"
   assume_role_policy = jsonencode({
@@ -55,6 +77,12 @@ resource "aws_lambda_function" "fineprint" {
       FOUNDRY_ENDPOINT    = "https://fineprint-ai-agent-resource.openai.azure.com/openai/v1/"
       FOUNDRY_MODEL       = "gpt-5-mini"
     }
+  }
+
+  # Terraform sets the first image; after that .github/workflows/deploy.yml owns it.
+  # Without this, every apply would roll Lambda back to the tag above.
+  lifecycle {
+    ignore_changes = [image_uri]
   }
 }
 
@@ -116,11 +144,45 @@ resource "aws_iam_role_policy" "fineprint_gh_policy" {
         Resource = "*"
       },
       {
-        Effect   = "Allow"
-        Action   = "lambda:UpdateFunctionCode"
+        Effect = "Allow"
+        # GetFunctionConfiguration is what `aws lambda wait function-updated` polls
+        Action = [
+          "lambda:UpdateFunctionCode",
+          "lambda:GetFunctionConfiguration",
+        ]
         Resource = aws_lambda_function.fineprint.arn
+      },
+      {
+        Effect   = "Allow"
+        Action   = "s3:GetObject"
+        Resource = "${aws_s3_bucket.fineprint_data.arn}/${aws_s3_object.policy_text.key}"
       },
     ]
   })
+}
+
+data "aws_caller_identity" "current" {}
+
+# The policy text the image bakes in. data/ is gitignored (insurer wording, redistribution
+# terms unchecked), so CI's checkout doesn't have it; the deploy job fetches it from here.
+resource "aws_s3_bucket" "fineprint_data" {
+  bucket = "fineprint-data-${data.aws_caller_identity.current.account_id}"
+}
+
+# New buckets block public access by default; stating it means an account-level change can't open this one
+resource "aws_s3_bucket_public_access_block" "fineprint_data" {
+  bucket                  = aws_s3_bucket.fineprint_data.id
+  block_public_acls       = true
+  block_public_policy     = true
+  ignore_public_acls      = true
+  restrict_public_buckets = true
+}
+
+# Uploaded from this machine by `terraform apply`; source_hash re-uploads it when the file changes
+resource "aws_s3_object" "policy_text" {
+  bucket      = aws_s3_bucket.fineprint_data.id
+  key         = "niva_reassure2.md"
+  source      = "${path.module}/../data/niva_reassure2.md"
+  source_hash = filemd5("${path.module}/../data/niva_reassure2.md")
 }
 
