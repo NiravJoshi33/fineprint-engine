@@ -1,0 +1,28 @@
+name: Deploy to AWS
+on:
+  push:
+    branches:
+      - main
+
+env:
+  AWS_REGION : "eu-north-1"
+# permission can be added at job level or workflow level
+permissions:
+  id-token: write   # This is required for requesting the JWT
+  contents: read    # This is required for actions/checkout
+jobs:
+  Deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Git clone the repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: configure aws credentials
+        uses: aws-actions/configure-aws-credentials@e1253824e5c10ff9df46874f81ed3ec929e19cfd  # v6.3.0
+        with:
+          role-to-assume: arn:aws:iam::342094638052:role/fineprint_gh_deploy
+          role-session-name: fineprint-deploy-${{ github['run_id'] }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Get caller identity
+        run: |
+          aws sts get-caller-identity
